@@ -6,6 +6,8 @@ It’s built with [Hono](https://hono.dev) + [MCP](https://modelcontextprotocol.
 > 💡 Every call to your `send_email` tool requires a payment on-chain.
 > If they want your attention, they’ve got to pay for it.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/microchipgnu/x402-email-mcp&project-name=x402-email-mcp&repository-name=x402-email-mcp&env=RECIPIENT_EMAIL,RESEND_FROM,RESEND_API_KEY,EVM_ADDRESS,SVM_ADDRESS,TITLE,DESCRIPTION,IMAGE_URL,URLS)
+
 ---
 
 ## ✨ Features
@@ -126,14 +128,6 @@ bun run example/client.ts
 * [Resend](https://resend.com) — Email delivery
 * [Vercel AI SDK](https://sdk.vercel.ai) — MCP client interface
 * [Model Context Protocol](https://modelcontextprotocol.io) — Tool-calling protocol
-
----
-
-## 💻 Deploy to Vercel
-
-Click below to deploy your own SPAMCP instance:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/microchipgnu/x402-email-mcp&project-name=x402-email-mcp&repository-name=x402-email-mcp&env=RECIPIENT_EMAIL,RESEND_FROM,RESEND_API_KEY,EVM_ADDRESS,SVM_ADDRESS,TITLE,DESCRIPTION,IMAGE_URL,URLS)
 
 ---
 
