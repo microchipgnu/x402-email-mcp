@@ -1,14 +1,14 @@
 {
   "name": "x402-mcp",
-  "module": "src/index.ts",
+  "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "dev": "bun --watch index.ts",
+    "start": "bun index.ts"
   },
   "peerDependencies": {
     "typescript": "^5"
