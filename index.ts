@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { createMcpHandler } from "mcp-handler";
 import { withPayment } from "mcpay/handler";
 import { z } from "zod";
-import { buildVercelDeployUrl, escapeHtml, renderHeaderSection, renderProfileSection, renderAboutSection } from "./utils";
-import { RESEND_API_KEY, RESEND_FROM, FACILITATOR_URL, TOOL_PRICE_SEND_EMAIL, EVM_ADDRESS, SVM_ADDRESS, RECIPIENT_EMAILS, INFO_TITLE, IMAGE_URL, INFO_DESCRIPTION, INFO_URLS } from "./envs";
+import { buildVercelDeployUrl, escapeHtml, renderHeaderSection, renderProfileSection, renderAboutSection } from "./src/utils";
+import { RESEND_API_KEY, RESEND_FROM, FACILITATOR_URL, TOOL_PRICE_SEND_EMAIL, EVM_ADDRESS, SVM_ADDRESS, RECIPIENT_EMAILS, INFO_TITLE, IMAGE_URL, INFO_DESCRIPTION, INFO_URLS } from "./src/envs";
 
 type ResendSendResponse = { id?: string };
 type ResendErrorPayload = { message?: string; error?: string };
@@ -86,7 +86,7 @@ const base = createMcpHandler(
         );
     },
     {
-        serverInfo: { name: "paid-mcp", version: "1.2.0" },
+        serverInfo: { name: `${INFO_TITLE} MCP Server`, version: "1.2.0" },
     }
 );
 
