@@ -203,6 +203,7 @@ function buildVercelDeployUrl({
     env = [
         "RECIPIENT_EMAIL",
         "RESEND_FROM",
+        "RESEND_API_KEY",
         "EVM_ADDRESS",
         "SVM_ADDRESS",
         "TITLE",
@@ -210,7 +211,7 @@ function buildVercelDeployUrl({
         "IMAGE_URL",
         "URLS"
     ],
-    integrationIds = ["oac_KfIFnjXqCl4YJCHnt1bDTBI1"]
+    // integrationIds = ["oac_KfIFnjXqCl4YJCHnt1bDTBI1"]
 } = {}): string {
     const baseUrl = "https://vercel.com/new/clone";
     const params = new URLSearchParams({
@@ -218,7 +219,7 @@ function buildVercelDeployUrl({
         "project-name": projectName,
         "repository-name": repositoryName,
         "env": env.join(","),
-        "integration-ids": integrationIds.join(",")
+        // "integration-ids": integrationIds.join(",")
     });
     return `${baseUrl}?${params.toString()}`;
 }
