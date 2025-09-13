@@ -1,14 +1,10 @@
-## 📬 SPAMCP
-
-**Turn spam into 💸.**
+![](/image-logo.png)
 
 SPAMCP is a minimal **paid MCP server** that charges people crypto to send you emails.
 It’s built with [Hono](https://hono.dev) + [MCP](https://modelcontextprotocol.io), uses [mcpay](https://mcpay.tech) for payments, and includes a working **MCP client** using the [Vercel AI SDK](https://sdk.vercel.ai).
 
 > 💡 Every call to your `send_email` tool requires a payment on-chain.
 > If they want your attention, they’ve got to pay for it.
-
-![](/image-logo.png)
 
 ---
 
