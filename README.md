@@ -16,25 +16,49 @@ Minimal paid MCP server using Hono + x402 payments, with an example MCP client. 
 bun install
 ```
 
-### 2) Run the MCP server (Bun)
+### 2) Configure environment
+
+Create a `.env` file (Bun auto-loads it) with values like:
+
+```bash
+# Email sending
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=no-reply@example.com
+RECIPIENT_EMAIL=alice@example.com,bob@example.com
+
+# Payments
+FACILITATOR_URL=https://facilitator.x402.rs
+TOOL_PRICE_SEND_EMAIL=$0.005
+
+# Payout addresses
+EVM_ADDRESS=0xc9343113c791cB5108112CFADa453Eef89a2E2A2
+SVM_ADDRESS=0xc9343113c791cB5108112CFADa453Eef89a2E2A2
+
+# Example client
+MCP_SERVER_URL=http://localhost:3000/mcp
+EVM_PRIVATE_KEY=0x...
+SVM_PRIVATE_KEY=0x...
+EVM_NETWORK=base
+SVM_NETWORK=solana-devnet
+```
+
+### 3) Run the MCP server (Bun)
 ```bash
 bun run index.ts
 ```
 By default Bun serves on port 3000. The MCP endpoint is `http://localhost:3000/mcp`.
 
-### 3) Run the example client (in a second terminal)
+### 4) Run the example client (in a second terminal)
 Set required environment variables, then run the client with Bun:
 
 ```bash
-export EVM_PRIVATE_KEY="0x<your-evm-private-key>"
-export SOLANA_PRIVATE_KEY="<your-solana-secret-key>"
-
+# ensure .env is populated, then run
 bun run example/client.ts
 ```
 
 Notes:
-- Keys must be testnet keys funded on the respective networks (Base Sepolia / Solana Devnet).
-- The client points at `http://localhost:3000/mcp` and will invoke the tools via MCP.
+- Keys must be funded for the chosen networks.
+- The client points at `MCP_SERVER_URL` and will invoke the tools via MCP.
 
 ## What’s included
 
