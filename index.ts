@@ -6,6 +6,8 @@ import { z } from "zod";
 type ResendSendResponse = { id?: string };
 type ResendErrorPayload = { message?: string; error?: string };
 
+const MODE = process.env.MODE || "testnet"; // testnet or mainnet
+
 // ENV (Bun auto-loads .env)
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || "no-reply@example.com";
@@ -119,14 +121,21 @@ const base = createMcpHandler(
     }
 );
 
+
+
+const payTo = MODE === "testnet" ? {
+    "base-sepolia": EVM_ADDRESS,
+    "solana-devnet": SVM_ADDRESS,
+} : {
+    "base": EVM_ADDRESS,
+    "solana": SVM_ADDRESS,
+};
+
 const paid = withPayment(base, {
     toolPricing: {
         send_email: TOOL_PRICE_SEND_EMAIL,
     },
-    payTo: {
-        "base-sepolia": EVM_ADDRESS,
-        "solana-devnet": SVM_ADDRESS,
-    },
+    payTo,
     facilitator: { url: FACILITATOR_URL as `${string}://${string}` },
 });
 
