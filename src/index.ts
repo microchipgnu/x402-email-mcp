@@ -2,39 +2,14 @@ import { Hono } from "hono";
 import { createMcpHandler } from "mcp-handler";
 import { withPayment } from "mcpay/handler";
 import { z } from "zod";
+import { buildVercelDeployUrl, escapeHtml, renderHeaderSection, renderProfileSection, renderAboutSection } from "./utils";
+import { RESEND_API_KEY, RESEND_FROM, FACILITATOR_URL, TOOL_PRICE_SEND_EMAIL, EVM_ADDRESS, SVM_ADDRESS, RECIPIENT_EMAILS, INFO_TITLE, IMAGE_URL, INFO_DESCRIPTION, INFO_URLS } from "./envs";
 
 type ResendSendResponse = { id?: string };
 type ResendErrorPayload = { message?: string; error?: string };
 
-// ENV (Bun auto-loads .env)
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || "no-reply@example.com";
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://facilitator.payai.network";
-const TOOL_PRICE_SEND_EMAIL = process.env.TOOL_PRICE_SEND_EMAIL || "$0.005";
 
-// Payout addresses from env with sensible defaults
-const EVM_ADDRESS = process.env.EVM_ADDRESS || "0xc9343113c791cB5108112CFADa453Eef89a2E2A2";
-const SVM_ADDRESS = process.env.SVM_ADDRESS || "4VQeAqyPxR9pELndskj38AprNj1btSgtaCrUci8N4Mdg";
-
-// Comma-separated list is supported: "alice@example.com,bob@example.com"
-const RECIPIENT_EMAILS = (process.env.RECIPIENT_EMAIL || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-// Optional Information section content
-const INFO_TITLE = (process.env.TITLE || "").trim();
-const INFO_DESCRIPTION = (process.env.DESCRIPTION || "").trim();
-const INFO_URLS: string[] = (process.env.URLS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-if (RECIPIENT_EMAILS.length === 0) {
-    console.warn(
-        "[x402-mcp] Warning: RECIPIENT_EMAIL is not set. The send_email tool will throw until configured."
-    );
-}
+const VERCEL_DEPLOY_URL = buildVercelDeployUrl();
 
 async function sendEmailViaResend({
     to,
@@ -70,85 +45,6 @@ async function sendEmailViaResend({
         throw new Error(msg);
     }
     return (json as ResendSendResponse); // { id, ... }
-}
-
-function escapeHtml(value: string): string {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
-function sanitizeUrl(url: string): string {
-    try {
-        const u = new URL(url);
-        return u.protocol === "http:" || u.protocol === "https:" ? url : "#";
-    } catch {
-        return "#";
-    }
-}
-
-function formatUrlLabel(url: string): string {
-    try {
-        const u = new URL(url);
-        let label = `${u.hostname}${u.pathname}`.replace(/\/$/, "");
-        if (label.length > 40) label = label.slice(0, 37) + "…";
-        return label;
-    } catch {
-        return url.length > 40 ? url.slice(0, 37) + "…" : url;
-    }
-}
-
-function renderLinkButtons(): string {
-    if (!INFO_URLS.length) return "";
-    return `<div class="mt-6 space-y-3">${INFO_URLS
-        .map((u) => {
-            const href = sanitizeUrl(u);
-            const label = escapeHtml(formatUrlLabel(u));
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="block w-full rounded-xl bg-white/10 ring-1 ring-white/10 hover:bg-white/20 transition-colors px-4 py-3 text-white">${label}</a>`;
-        })
-        .join("")}</div>`;
-}
-
-function renderProfileSection(): string {
-    const heading = INFO_TITLE || "Paid Email Sending";
-    const titleHtml = `<h1 class="text-3xl font-bold mb-2">${escapeHtml(heading)}</h1>`;
-    const descHtml = INFO_DESCRIPTION
-        ? `<p class="text-slate-300">${escapeHtml(INFO_DESCRIPTION)}</p>`
-        : "";
-    const linksHtml = renderLinkButtons();
-    return `${titleHtml}${descHtml}${linksHtml}`;
-}
-
-function renderAboutSection(): string {
-    const title = "About";
-    const description = `This service allows you to send emails to ${escapeHtml(INFO_TITLE || "the configured recipients")} via MCP, with payment required per email.`;
-    return `
-        <div class="mt-8 border-t border-white/10 pt-6 text-left">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">${escapeHtml(title)}</h2>
-            <p class="text-[0.8rem] leading-relaxed text-white/70">${description}</p>
-            <div class="mb-5 flex justify-center items-center gap-2 mt-2">
-                <span class="rounded-md bg-white/10 px-2 py-1 text-xs font-mono text-white border border-white/20" id="url"></span>
-            </div>
-        </div>
-    `.trim();
-}
-
-function renderHeaderSection(): string {
-    return `
-        <header class="absolute left-1/2 top-0 transform -translate-x-1/2 mt-8 pt-6 text-center w-full max-w-lg">
-            <div class="flex flex-col items-center gap-2">
-                <h1 class="text-4xl font-extrabold text-white drop-shadow-lg tracking-tight">
-                    Email Me
-                </h1>
-                <p class="text-slate-300 text-sm mt-1 font-medium">
-                    Secure, paid email sending powered by MCP
-                </p>
-            </div>
-        </header>
-    `.trim();
 }
 
 const app = new Hono();
@@ -200,6 +96,7 @@ const paid = withPayment(base, {
     },
     payTo: {
         "base-sepolia": EVM_ADDRESS,
+        "solana-devnet": SVM_ADDRESS,
     },
     facilitator: { url: FACILITATOR_URL as `${string}://${string}` },
 });
@@ -222,8 +119,8 @@ app.get("/", (c) => {
         ${renderHeaderSection()}
             <main class="mx-4">
                 <section class="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/10 p-10 max-w-md text-center">
-                    ${renderProfileSection()}
-                    ${renderAboutSection()}
+                    ${renderProfileSection(INFO_TITLE, IMAGE_URL, INFO_DESCRIPTION, INFO_URLS)}
+                    ${renderAboutSection(INFO_TITLE, TOOL_PRICE_SEND_EMAIL)}
                 </section>
             </main>
             <footer class="pointer-events-none absolute inset-x-0 bottom-0 p-4">
@@ -232,12 +129,34 @@ app.get("/", (c) => {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 inline-block align-text-bottom"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.184 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.091-.647.35-1.088.636-1.339-2.221-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.295 2.748-1.025 2.748-1.025.546 1.378.202 2.397.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.847-2.337 4.695-4.566 4.944.359.309.678.919.678 1.852 0 1.336-.012 2.417-.012 2.747 0 .268.18.58.688.482C19.138 20.2 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"/></svg>
                         GitHub
                     </a>
-                    <a class="inline-block" href="https://vercel.com/new/clone?repository-url=https://github.com/microchipgnu/x402-email-mcp&project-name=x402-email-mcp&repository-name=x402-email-mcp&env=RECIPIENT_EMAIL,RESEND_FROM,EVM_PRIVATE_KEY,SOLANA_PRIVATE_KEY" target="_blank" rel="noopener">
+                    <a class="inline-block" href="${VERCEL_DEPLOY_URL}" target="_blank" rel="noopener">
                         <img class="h-8" src="https://vercel.com/button" alt="Deploy with Vercel"/>
                     </a>
                 </div>
             </footer>
-            <script>document.getElementById('url').textContent = window.location.href + 'mcp';</script>
+            <script>(function(){
+                const base = window.location.origin + window.location.pathname;
+                const endpoint = (base.endsWith('/') ? base.slice(0, -1) : base) + '/mcp';
+                const urlEl = document.getElementById('url');
+                if (urlEl) urlEl.textContent = endpoint;
+
+                const copyBtn = document.getElementById('url-copy');
+                if (copyBtn && endpoint) {
+                    copyBtn.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(endpoint);
+                            const prevTitle = copyBtn.getAttribute('title') || '';
+                            copyBtn.setAttribute('title', 'Copied');
+                            const originalText = copyBtn.textContent || 'copy';
+                            copyBtn.textContent = 'copied';
+                            setTimeout(() => {
+                                copyBtn.setAttribute('title', prevTitle || 'Copy endpoint');
+                                copyBtn.textContent = originalText;
+                            }, 1200);
+                        } catch (e) {}
+                    });
+                }
+            })();</script>
         </body>
         </html>
     `);
