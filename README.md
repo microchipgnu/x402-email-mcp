@@ -8,7 +8,7 @@ It’s built with [Hono](https://hono.dev) + [MCP](https://modelcontextprotocol.
 > 💡 Every call to your `send_email` tool requires a payment on-chain.
 > If they want your attention, they’ve got to pay for it.
 
-![](/imagelogo.png)
+![](/image-logo.png)
 
 ---
 
