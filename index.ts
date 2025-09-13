@@ -22,6 +22,14 @@ const RECIPIENT_EMAILS = (process.env.RECIPIENT_EMAIL || "")
     .map((s) => s.trim())
     .filter(Boolean);
 
+// Optional Information section content
+const INFO_TITLE = (process.env.TITLE || "").trim();
+const INFO_DESCRIPTION = (process.env.DESCRIPTION || "").trim();
+const INFO_URLS: string[] = (process.env.URLS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 if (RECIPIENT_EMAILS.length === 0) {
     console.warn(
         "[x402-mcp] Warning: RECIPIENT_EMAIL is not set. The send_email tool will throw until configured."
@@ -64,11 +72,89 @@ async function sendEmailViaResend({
     return (json as ResendSendResponse); // { id, ... }
 }
 
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function sanitizeUrl(url: string): string {
+    try {
+        const u = new URL(url);
+        return u.protocol === "http:" || u.protocol === "https:" ? url : "#";
+    } catch {
+        return "#";
+    }
+}
+
+function formatUrlLabel(url: string): string {
+    try {
+        const u = new URL(url);
+        let label = `${u.hostname}${u.pathname}`.replace(/\/$/, "");
+        if (label.length > 40) label = label.slice(0, 37) + "…";
+        return label;
+    } catch {
+        return url.length > 40 ? url.slice(0, 37) + "…" : url;
+    }
+}
+
+function renderLinkButtons(): string {
+    if (!INFO_URLS.length) return "";
+    return `<div class="mt-6 space-y-3">${INFO_URLS
+        .map((u) => {
+            const href = sanitizeUrl(u);
+            const label = escapeHtml(formatUrlLabel(u));
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="block w-full rounded-xl bg-white/10 ring-1 ring-white/10 hover:bg-white/20 transition-colors px-4 py-3 text-white">${label}</a>`;
+        })
+        .join("")}</div>`;
+}
+
+function renderProfileSection(): string {
+    const heading = INFO_TITLE || "Paid Email Sending";
+    const titleHtml = `<h1 class="text-3xl font-bold mb-2">${escapeHtml(heading)}</h1>`;
+    const descHtml = INFO_DESCRIPTION
+        ? `<p class="text-slate-300">${escapeHtml(INFO_DESCRIPTION)}</p>`
+        : "";
+    const linksHtml = renderLinkButtons();
+    return `${titleHtml}${descHtml}${linksHtml}`;
+}
+
+function renderAboutSection(): string {
+    const title = "About";
+    const description = `This service allows you to send emails to ${escapeHtml(INFO_TITLE || "the configured recipients")} via MCP, with payment required per email.`;
+    return `
+        <div class="mt-8 border-t border-white/10 pt-6 text-left">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">${escapeHtml(title)}</h2>
+            <p class="text-[0.8rem] leading-relaxed text-white/70">${description}</p>
+            <div class="mb-5 flex justify-center items-center gap-2 mt-2">
+                <span class="rounded-md bg-white/10 px-2 py-1 text-xs font-mono text-white border border-white/20" id="url"></span>
+            </div>
+        </div>
+    `.trim();
+}
+
+function renderHeaderSection(): string {
+    return `
+        <header class="absolute left-1/2 top-0 transform -translate-x-1/2 mt-8 pt-6 text-center w-full max-w-lg">
+            <div class="flex flex-col items-center gap-2">
+                <h1 class="text-4xl font-extrabold text-white drop-shadow-lg tracking-tight">
+                    Email Me
+                </h1>
+                <p class="text-slate-300 text-sm mt-1 font-medium">
+                    Secure, paid email sending powered by MCP
+                </p>
+            </div>
+        </header>
+    `.trim();
+}
+
 const app = new Hono();
 
 const base = createMcpHandler(
     (server) => {
-        // ---- Paid tool that *always* sends to RECIPIENT_EMAIL(S) ----
         server.tool(
             "send_email",
             "Send an email to the preconfigured recipient(s) (paid).",
@@ -113,17 +199,48 @@ const paid = withPayment(base, {
         send_email: TOOL_PRICE_SEND_EMAIL,
     },
     payTo: {
-        base: EVM_ADDRESS,
-        avalanche: EVM_ADDRESS,
-        sei: EVM_ADDRESS,
-        iotex: EVM_ADDRESS,
-        solana: SVM_ADDRESS,
+        "base-sepolia": EVM_ADDRESS,
     },
     facilitator: { url: FACILITATOR_URL as `${string}://${string}` },
 });
 
 app.get("/", (c) => {
-    return c.html("<h1>MCP Server that monetizes on email sending</h1>");
+    return c.html(`
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <title>${escapeHtml(INFO_TITLE || "MCP Email Monetization Server")}</title>
+            <meta name="color-scheme" content="dark" />
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+            <style>html { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }</style>
+        </head>
+        <body class="relative min-h-screen m-0 grid place-items-center bg-gradient-to-br from-[#2c5364] via-[#203a43] to-[#0f2027] text-white">
+        ${renderHeaderSection()}
+            <main class="mx-4">
+                <section class="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/10 p-10 max-w-md text-center">
+                    ${renderProfileSection()}
+                    ${renderAboutSection()}
+                </section>
+            </main>
+            <footer class="pointer-events-none absolute inset-x-0 bottom-0 p-4">
+                <div class="pointer-events-auto mx-auto flex max-w-3xl items-center justify-center gap-6">
+                    <a href="https://github.com/microchipgnu/x402-email-mcp" target="_blank" rel="noopener" class="flex items-center gap-2 text-emerald-300/90 hover:text-white transition-colors underline decoration-emerald-400/30 hover:decoration-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 inline-block align-text-bottom"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.184 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.091-.647.35-1.088.636-1.339-2.221-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.295 2.748-1.025 2.748-1.025.546 1.378.202 2.397.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.847-2.337 4.695-4.566 4.944.359.309.678.919.678 1.852 0 1.336-.012 2.417-.012 2.747 0 .268.18.58.688.482C19.138 20.2 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"/></svg>
+                        GitHub
+                    </a>
+                    <a class="inline-block" href="https://vercel.com/new/clone?repository-url=https://github.com/microchipgnu/x402-email-mcp&project-name=x402-email-mcp&repository-name=x402-email-mcp&env=RECIPIENT_EMAIL,RESEND_FROM,EVM_PRIVATE_KEY,SOLANA_PRIVATE_KEY" target="_blank" rel="noopener">
+                        <img class="h-8" src="https://vercel.com/button" alt="Deploy with Vercel"/>
+                    </a>
+                </div>
+            </footer>
+            <script>document.getElementById('url').textContent = window.location.href + 'mcp';</script>
+        </body>
+        </html>
+    `);
 });
 
 // Serve MCP under /mcp/* to match client default

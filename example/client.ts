@@ -29,7 +29,7 @@ export const getClientResponse = async () => {
 
     const response = await generateText({
         model: "openai/gpt-4o-mini",
-        messages: [{ role: "user", content: "How is the weather in Tokyo?" }],
+        messages: [{ role: "user", content: "Send an email about the latest news in the crypto space." }],
         tools: tools,
         maxRetries: 10,
         stopWhen: ({steps}) => {
@@ -44,4 +44,4 @@ export const getClientResponse = async () => {
 }
 
 const response = await getClientResponse()
-console.log(response.text)
+console.log(JSON.stringify(response, null, 2))
