@@ -16,8 +16,6 @@ It’s built with [Hono](https://hono.dev) + [MCP](https://modelcontextprotocol.
 * 🤖 **Example MCP client** — Uses the [Vercel AI SDK](https://sdk.vercel.ai) to call your tools and auto-handle payments.
 * 🧩 **Easy deployment** — Bun-first, Vercel-ready, environment-driven config.
 
-![](/screenshot.png)
-
 ---
 
 ## ⚡ Quickstart
